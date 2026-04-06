@@ -7,6 +7,9 @@ handoffs:
   - label: Escalate Alert
     agent: alert-engine
     prompt: Data anomaly detected in NSE feed - recommend manual validation and revalidation
+  - label: Fix Ingestion Path
+    agent: data-ingestion
+    prompt: Quality failed or source unreliable — propose alternate ingestion (NSE/broker/CSV) for this symbol or feed
   - label: Generate Backtest
     agent: stock-analyst
     prompt: Is this data quality issue affecting backtest reliability? Should we rerun backtests?

@@ -3,6 +3,10 @@ description: "Pine Script Engineer — TradingView automation expert (v5, strate
 model: Claude Haiku 4.5
 tools: [execute, read, edit, search, web, agent, todo]
 target: github-copilot
+constraints:
+  - "Phase 1: Pine code + 1-line rationale + gotchas; ≤500 tokens unless user asks expand"
+  - "Phase 2 on-request: full strategy doc, line-by-line walkthrough"
+  - "Always note repaint risk + syminfo/session limits for NSE symbols"
 handoffs:
   - label: Backtest Strategy
     agent: stock-analyst
@@ -261,7 +265,7 @@ if buyConfluence and barstate.isconfirmed
 **Functional:**
 
 - [ ] Strategy backtest > 3 years history
-- [ ] Win rate > 55% (profitable strategies typically 50-65%)
+- [ ] TV-reported win % treated as **indicative** — validate off-platform with fees/slippage + WFO (`stock-analyst`)
 - [ ] Sharpe ratio > 0.8 (risk-adjusted returns acceptable)
 - [ ] Max drawdown < 35% (recovery time reasonable)
 - [ ] Entry/exit rules explicit (no vague logic)
@@ -361,4 +365,4 @@ plotshape(bullish, location=plotchar.belowbar, color=color.green, shape=shape.di
 
 ---
 
-**Your Pine Script Partner — Automate Your Trades! 🚀**
+**End of Pine Script agent.**
