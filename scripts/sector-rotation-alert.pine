@@ -1,0 +1,140 @@
+//@version=5
+indicator("NSE Sector Rotation", overlay=false)
+
+rsi_p = input(14, "RSI Period")
+ma_s = input(20, "Short MA")
+ma_l = input(200, "Long MA")
+th_rot = input.float(1.0, "Rotation Threshold", step=0.1)
+show_alrt = input(true, "Alerts")
+
+it_en = input(true, "IT")
+bk_en = input(true, "Bank")
+ph_en = input(true, "Pharma")
+au_en = input(true, "Auto")
+mt_en = input(true, "Metals")
+fg_en = input(true, "FMCG")
+if_en = input(true, "Infra")
+rl_en = input(true, "Realty")
+en_en = input(true, "Energy")
+ps_en = input(true, "PSU")
+
+it_rg = input.int(0, "IT Adj", minval=-5, maxval=5)
+bk_rg = input.int(0, "Bank Adj", minval=-5, maxval=5)
+ph_rg = input.int(1, "Pharma Adj", minval=-5, maxval=5)
+au_rg = input.int(1, "Auto Adj", minval=-5, maxval=5)
+mt_rg = input.int(-1, "Metals Adj", minval=-5, maxval=5)
+fg_rg = input.int(0, "FMCG Adj", minval=-5, maxval=5)
+if_rg = input.int(1, "Infra Adj", minval=-5, maxval=5)
+rl_rg = input.int(0, "Realty Adj", minval=-5, maxval=5)
+en_rg = input.int(-1, "Energy Adj", minval=-5, maxval=5)
+ps_rg = input.int(0, "PSU Adj", minval=-5, maxval=5)
+
+f_rate(t, r) =>
+    cls = request.security(t, "D", close)
+    vol = request.security(t, "D", volume)
+    rsi = request.security(t, "D", ta.rsi(cls, rsi_p))
+    sma_s = request.security(t, "D", ta.sma(cls, ma_s))
+    sma_l = request.security(t, "D", ta.sma(cls, ma_l))
+    sma200 = request.security(t, "D", ta.sma(cls, ma_l))
+    
+    gs = 0.0
+    if rsi > 65
+        gs += 4.0
+    else if rsi > 55
+        gs += 3.0
+    else if rsi > 45
+        gs += 2.0
+    else if rsi < 35
+        gs += 1.0
+    if cls > sma_s and cls > sma_l
+        gs += 3.0
+    else if cls > sma_s
+        gs += 2.0
+    else if cls > sma_l
+        gs += 1.0
+    
+    vs = 9.0
+    rm = cls / sma200
+    if rm >= 0.95 and rm < 1.0
+        vs = 7.0
+    else if rm >= 1.0 and rm < 1.1
+        vs = 5.0
+    else if rm >= 1.1 and rm < 1.2
+        vs = 3.0
+    else if rm >= 1.2
+        vs = 1.0
+    
+    vm = request.security(t, "D", ta.sma(vol, 20))
+    vr = vol / vm
+    obv = request.security(t, "D", ta.obv)
+    obvm = request.security(t, "D", ta.sma(obv, 20))
+    
+    vs2 = 0.0
+    if vr > 1.2
+        vs2 = 3.0
+    else if vr > 1.0
+        vs2 = 2.0
+    else if vr > 0.8
+        vs2 = 1.0
+    
+    fs = math.min(vs2 + (obv > obvm ? 2.0 : 0.5), 10.0)
+    rs = math.max(0.0, math.min(5.0 + r, 10.0))
+    (0.35 * math.min(gs, 10.0)) + (0.35 * vs) + (0.20 * fs) + (0.10 * rs)
+
+it = it_en ? f_rate("NIFTY_IT", it_rg) : na
+bk = bk_en ? f_rate("NIFTY_BANK", bk_rg) : na
+ph = ph_en ? f_rate("NIFTY_PHARMA", ph_rg) : na
+au = au_en ? f_rate("NIFTY_AUTO", au_rg) : na
+mt = mt_en ? f_rate("NIFTY_METALS", mt_rg) : na
+fg = fg_en ? f_rate("NIFTY_FMCG", fg_rg) : na
+ifr = if_en ? f_rate("NIFTY_INFRA", if_rg) : na
+rl = rl_en ? f_rate("NIFTY_REALTY", rl_rg) : na
+en = en_en ? f_rate("NIFTY_ENERGY", en_rg) : na
+ps = ps_en ? f_rate("NIFTY_PSU", ps_rg) : na
+
+var h_it = array.new<float>()
+var h_bk = array.new<float>()
+var h_ph = array.new<float>()
+
+if barstate.isnew
+    if it_en
+        array.push(h_it, it)
+        if array.size(h_it) > 20
+            array.shift(h_it)
+    if bk_en
+        array.push(h_bk, bk)
+        if array.size(h_bk) > 20
+            array.shift(h_bk)
+    if ph_en
+        array.push(h_ph, ph)
+        if array.size(h_ph) > 20
+            array.shift(h_ph)
+
+plot(it, "IT", color.blue, style=plot.style_columns)
+plot(bk, "Bank", color.orange, style=plot.style_columns)
+plot(ph, "Pharma", color.green, style=plot.style_columns)
+
+if show_alrt and barstate.isconfirmed
+    if it_en and array.size(h_it) > 0
+        avg_it = array.avg(h_it)
+        rot_it = it - avg_it
+        if rot_it > th_rot
+            alert("🟢 IT " + str.tostring(math.round(it, 1)), alert.freq_once_per_bar)
+        if rot_it < -th_rot
+            alert("🔴 IT " + str.tostring(math.round(it, 1)), alert.freq_once_per_bar)
+    
+    if bk_en and array.size(h_bk) > 0
+        avg_bk = array.avg(h_bk)
+        rot_bk = bk - avg_bk
+        if rot_bk > th_rot
+            alert("🟢 BANK " + str.tostring(math.round(bk, 1)), alert.freq_once_per_bar)
+        if rot_bk < -th_rot
+            alert("🔴 BANK " + str.tostring(math.round(bk, 1)), alert.freq_once_per_bar)
+    
+    if ph_en and array.size(h_ph) > 0
+        avg_ph = array.avg(h_ph)
+        rot_ph = ph - avg_ph
+        if rot_ph > th_rot
+            alert("🟢 PHARMA " + str.tostring(math.round(ph, 1)), alert.freq_once_per_bar)
+        if rot_ph < -th_rot
+            alert("🔴 PHARMA " + str.tostring(math.round(ph, 1)), alert.freq_once_per_bar)

@@ -195,6 +195,39 @@ handoffs:
 - **Market Profile:** Point of Control, Value Area, Open, High, Low, initial balance
 - **Seasonality Patterns:** Month seasonality, quarter seasonality, year seasonality, festival effects
 
+**Pivot Points & Support/Resistance Levels:**
+
+Pivot points are pre-market calculated levels that predict intraday support/resistance; highly effective for scalping & swing trading on low-risk entries.
+
+- **Classic Pivot Points:**
+  - Pivot (P) = (High + Low + Close) / 3
+  - Resistance 1 (R1) = (2 × P) - Low
+  - Support 1 (S1) = (2 × P) - High
+  - Resistance 2 (R2) = P + (High - Low)
+  - Support 2 (S2) = P - (High - Low)
+  - Usage: Price touches pivot → reversal likely; breakout above R1/R2 → momentum continues
+
+- **Fibonacci Pivot Points (Optional Advanced):**
+  - Fibonacci levels (23.6%, 38.2%, 61.8%) applied to yesterday's range for finer precision
+  - R1.38 = P + 0.382 × (High - Low)
+  - S1.38 = P - 0.382 × (High - Low)
+  - Best for: Confluence with other TA (order blocks, candlesticks); adds confidence
+
+- **Camarilla Pivot Points (Optional Advanced):**
+  - Tighter bands than classic pivots; 4 resistance + 4 support levels
+  - H4 = Close + 1.5000 × (High - Low)
+  - H3 = Close + 1.2500 × (High - Low)
+  - H2 = Close + 0.6250 × (High - Low)
+  - R1 = (4 × Close - Low) / 3
+  - L1 = (4 × Close - High) / 3
+  - Best for: Volatile intraday ranges; mean-reversion setups within H3-H4 and L4-L3 bands
+
+- **Pivot Point Entry Strategy (Confluence Example):**
+  - Entry: Price bounces off S1 + RSI oversold (< 30) + volume spike
+  - Target: R1 (easy profit) or R2 (hold for momentum)
+  - Stop: Below S2 or 1 ATR below entry
+  - Win rate: 55-65% on confluence; effective on hourly/daily timeframes
+
 ---
 
 ### Fundamental Analysis (FA) Indicators

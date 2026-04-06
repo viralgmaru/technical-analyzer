@@ -1,0 +1,135 @@
+//@version=5
+indicator("Sector Rotation - Aggressive", overlay=false)
+
+rsi_p = input(10, "RSI (faster)")
+ma_s = input(10, "MA Short")
+ma_l = input(200, "MA Long")
+th = input.float(0.3, "High Threshold")
+th_low = input.float(-0.3, "Low Threshold")
+
+it_en = input(true, "IT")
+bk_en = input(true, "Bank")
+ph_en = input(true, "Pharma")
+au_en = input(true, "Auto")
+
+it_rg = input.int(0, "IT Reg")
+bk_rg = input.int(0, "Bank Reg")
+ph_rg = input.int(1, "Pharma Reg")
+au_rg = input.int(1, "Auto Reg")
+
+f_score(t, r) =>
+    cls = request.security(t, "D", close)
+    vol = request.security(t, "D", volume)
+    rsi = request.security(t, "D", ta.rsi(cls, rsi_p))
+    sma_s = request.security(t, "D", ta.sma(cls, ma_s))
+    sma_l = request.security(t, "D", ta.sma(cls, ma_l))
+    sma200 = request.security(t, "D", ta.sma(cls, ma_l))
+    
+    gs = 0.0
+    if rsi > 65
+        gs += 4.0
+    else if rsi > 55
+        gs += 3.0
+    else if rsi > 45
+        gs += 2.0
+    else if rsi < 35
+        gs += 1.0
+    if cls > sma_s and cls > sma_l
+        gs += 3.0
+    else if cls > sma_s
+        gs += 2.0
+    else if cls > sma_l
+        gs += 1.0
+    
+    vs = 1.0
+    rm = cls / sma200
+    if rm < 0.95
+        vs = 9.0
+    else if rm < 1.0
+        vs = 7.0
+    else if rm < 1.1
+        vs = 5.0
+    else if rm < 1.2
+        vs = 3.0
+    else
+        vs = 1.0
+    
+    vm = request.security(t, "D", ta.sma(vol, 15))
+    vr = vol / vm
+    obv = request.security(t, "D", ta.obv)
+    obvm = request.security(t, "D", ta.sma(obv, 15))
+    
+    vs2 = 0.0
+    if vr > 1.2
+        vs2 = 3.0
+    else if vr > 1.0
+        vs2 = 2.0
+    else if vr > 0.8
+        vs2 = 1.0
+    fs = math.min(vs2 + (obv > obvm ? 2.0 : 0.5), 10.0)
+    
+    rs = math.max(0.0, math.min(5.0 + r, 10.0))
+    (0.30 * math.min(gs, 10.0)) + (0.30 * vs) + (0.25 * fs) + (0.15 * rs)
+
+it = it_en ? f_score("NIFTY_IT", it_rg) : na
+bk = bk_en ? f_score("NIFTY_BANK", bk_rg) : na
+ph = ph_en ? f_score("NIFTY_PHARMA", ph_rg) : na
+au = au_en ? f_score("NIFTY_AUTO", au_rg) : na
+
+var h_it = array.new<float>()
+var h_bk = array.new<float>()
+var h_ph = array.new<float>()
+var h_au = array.new<float>()
+
+if barstate.isnew
+    if it_en
+        array.push(h_it, it)
+        if array.size(h_it) > 15
+            array.shift(h_it)
+    if bk_en
+        array.push(h_bk, bk)
+        if array.size(h_bk) > 15
+            array.shift(h_bk)
+    if ph_en
+        array.push(h_ph, ph)
+        if array.size(h_ph) > 15
+            array.shift(h_ph)
+    if au_en
+        array.push(h_au, au)
+        if array.size(h_au) > 15
+            array.shift(h_au)
+
+plot(it, "IT", color.blue, style=plot.style_columns)
+plot(bk, "Bank", color.orange, style=plot.style_columns)
+plot(ph, "Pharma", color.green, style=plot.style_columns)
+plot(au, "Auto", color.red, style=plot.style_columns)
+
+if barstate.isconfirmed
+    if it_en and array.size(h_it) > 0
+        a = array.avg(h_it)
+        d = it - a
+        if d > th
+            alert("🟢 IT " + str.tostring(math.round(it, 1)), alert.freq_once_per_bar)
+        if d < th_low
+            alert("🔴 IT " + str.tostring(math.round(it, 1)), alert.freq_once_per_bar)
+    if bk_en and array.size(h_bk) > 0
+        a = array.avg(h_bk)
+        d = bk - a
+        if d > th
+            alert("🟢 BK " + str.tostring(math.round(bk, 1)), alert.freq_once_per_bar)
+        if d < th_low
+            alert("🔴 BK " + str.tostring(math.round(bk, 1)), alert.freq_once_per_bar)
+    if ph_en and array.size(h_ph) > 0
+        a = array.avg(h_ph)
+        d = ph - a
+        if d > th
+            alert("🟢 PH " + str.tostring(math.round(ph, 1)), alert.freq_once_per_bar)
+        if d < th_low
+            alert("🔴 PH " + str.tostring(math.round(ph, 1)), alert.freq_once_per_bar)
+    if au_en and array.size(h_au) > 0
+        a = array.avg(h_au)
+        d = au - a
+        if d > th
+            alert("🟢 AU " + str.tostring(math.round(au, 1)), alert.freq_once_per_bar)
+        if d < th_low
+            alert("🔴 AU " + str.tostring(math.round(au, 1)), alert.freq_once_per_bar)

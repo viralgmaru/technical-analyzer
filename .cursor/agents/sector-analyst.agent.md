@@ -18,6 +18,12 @@ handoffs:
   - label: Audit Sector Flows
     agent: data-quality
     prompt: Validate FII/DII flow data from NSE report for this sector
+  - label: Trade Attractive Sectors
+    agent: stock-analyst
+    prompt: Find the best trading setups in these attractive sectors
+  - label: Automate Alerts
+    agent: pine-tradingview
+    prompt: Build a Pine Script to auto-alert when this sector rotation signal triggers
 ---
 
 # Sector Analyst - Agent Role
@@ -43,10 +49,11 @@ handoffs:
 - Top 3 attractive + avoid sectors (list only)
 - 1-line recommendation w/ conviction
 - No verbose explanations; structured data preferred
+- Optional: Pine Script automation available for real-time alerts
 
 **Phase 2 (Extended - On Request):** 1500+ tokens
 
-- "Would you like: sector comparison matrix / historical valuation ranges / seasonal analysis / bottom-up validation?"
+- "Would you like: sector comparison matrix / historical valuation ranges / seasonal analysis / bottom-up validation / Pine Script implementation guide?"
 - Only generate after explicit user request
 
 ## Required Input Data
@@ -312,6 +319,54 @@ When to use:
 - Use Data-Quality: Validate sector fund flow numbers from NSE reports
 - Use Risk-Manager: Assess sector concentration in portfolio; recommend rebalancing
 - Use Stock-Analyst: Get specific trade setups within identified attractive sector
+- Use Pine-TradingView: Build automated sector rotation alerts using multi-timeframe confluence (1H/4H/Daily RSI alignment across sector indices)
+
+---
+
+## Automated Sector Monitoring via Pine Script
+
+**Use Pine Script for Real-Time Sector Rotation Signals:**
+
+Pine Script v5 enables building multi-sector monitoring strategies on TradingView:
+
+- **Multi-Sector Dashboard:** Track all 10 NSE sectors simultaneously with custom Pine indicators
+  - Plot all 10 sector index RSI/MACD on single chart; visually identify strongest/weakest sectors
+  - Use `request.security()` to fetch sector index data (Nifty IT, Nifty Bank, etc.)
+- **Automated Rotation Alerts:**
+  - Alert when Rotation signal crosses threshold (e.g., +1.0 → "Strong IN" → buy signal)
+  - Alert when sector valuation crosses relative P/E bands (e.g., P/E < 0.9x Nifty50 → accumulate)
+  - Alert when FII flow trend reverses (e.g., 2-week avg inflow > threshold → institutional accumulation)
+
+- **Strategy Template (Multi-Sector Rotation):**
+
+  ```pine
+  //@version=5
+  strategy("Sector Rotation", overlay=false)
+
+  // Fetch sector data via request.security()
+  niftyIT_rsi = request.security("NIFTYIT", "240", ta.rsi(close, 14))
+  niftyBank_rsi = request.security("NIFTYBANK", "240", ta.rsi(close, 14))
+  niftyPharma_rsi = request.security("NIFTYPHARMA", "240", ta.rsi(close, 14))
+
+  // Rotation signal: Current > 4-week avg
+  rotationIN = niftyIT_rsi > 65 and niftyIT_rsi[20] < 60
+
+  // Alert on rotation
+  if rotationIN
+      alert("ROTATE INTO IT SECTOR", alert.freq_once_per_bar)
+  ```
+
+- **Integration Workflow:**
+  1. Pin Pine Script indicator to chart showing all 10 sector indices
+  2. TradingView alerts → webhook → Discord/Slack notification
+  3. Manually execute via Stock-Analyst agent (validate specific stock setups within attractive sector)
+  4. Or auto-execute via broker API (direct order placement without manual step)
+
+- **Advantages Over Manual:**
+  - 24/5 monitoring (no human fatigue)
+  - Real-time alerts (avoid missing rotation windows)
+  - Historical backtesting (validate strategy effectiveness)
+  - No code deployment (TradingView hosts the script)
 
 ---
 

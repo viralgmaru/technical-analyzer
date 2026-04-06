@@ -1,0 +1,92 @@
+//@version=5
+indicator("Sector Rotation - Infra & Realty", overlay=false)
+
+rsi_p = input(14, "RSI")
+ma_s = input(20, "MA Short")
+ma_l = input(200, "MA Long")
+th = input.float(1.0, "Threshold")
+
+ifr_rg = input.int(1, "Infra Reg")
+rl_rg = input.int(0, "Realty Reg")
+
+f_score(t, tf, r) =>
+    cls = request.security(t, tf, close)
+    vol = request.security(t, tf, volume)
+    rsi = request.security(t, tf, ta.rsi(cls, rsi_p))
+    sma_s = request.security(t, tf, ta.sma(cls, ma_s))
+    sma_l = request.security(t, tf, ta.sma(cls, ma_l))
+    
+    gs = 0.0
+    if rsi > 65
+        gs += 4.0
+    else if rsi > 55
+        gs += 3.0
+    else if rsi > 45
+        gs += 2.0
+    else if rsi < 35
+        gs += 1.0
+    if cls > sma_s and cls > sma_l
+        gs += 3.0
+    else if cls > sma_s
+        gs += 2.0
+    else if cls > sma_l
+        gs += 1.0
+    
+    vs = 1.0
+    rm = cls / sma_l
+    if rm < 0.95
+        vs = 9.0
+    else if rm < 1.0
+        vs = 7.0
+    else if rm < 1.1
+        vs = 5.0
+    else if rm < 1.2
+        vs = 3.0
+    else
+        vs = 1.0
+    
+    vm = request.security(t, tf, ta.sma(vol, 20))
+    vr = vol / vm
+    fs = vr > 1.2 ? 3.0 : vr > 1.0 ? 2.0 : 1.0
+    
+    rs = math.max(0.0, math.min(5.0 + r, 10.0))
+    (0.35 * math.min(gs, 10.0)) + (0.35 * vs) + (0.20 * fs) + (0.10 * rs)
+
+f_multi(t, r) =>
+    d = f_score(t, "D", r)
+    w = f_score(t, "W", r)
+    (0.60 * d) + (0.40 * w)
+
+ifr_m = f_multi("NIFTY_INFRA", ifr_rg)
+rl_m = f_multi("NIFTY_REALTY", rl_rg)
+
+var h_ifr = array.new<float>()
+var h_rl = array.new<float>()
+
+if barstate.isnew
+    array.push(h_ifr, ifr_m)
+    if array.size(h_ifr) > 20
+        array.shift(h_ifr)
+    array.push(h_rl, rl_m)
+    if array.size(h_rl) > 20
+        array.shift(h_rl)
+
+plot(ifr_m, "Infra", color.lime, style=plot.style_columns)
+plot(rl_m, "Realty", color.maroon, style=plot.style_columns)
+
+hline(7.0, "Attractive", color=color.gray, linestyle=hline.style_dotted)
+hline(5.0, "Moderate", color=color.gray, linestyle=hline.style_dotted)
+
+if barstate.isconfirmed
+    if array.size(h_ifr) > 0
+        a = array.avg(h_ifr)
+        if ifr_m - a > th
+            alert("🟢 IF " + str.tostring(math.round(ifr_m, 1)), alert.freq_once_per_bar)
+        if ifr_m - a < -th
+            alert("🔴 IF " + str.tostring(math.round(ifr_m, 1)), alert.freq_once_per_bar)
+    if array.size(h_rl) > 0
+        a = array.avg(h_rl)
+        if rl_m - a > th
+            alert("🟢 RL " + str.tostring(math.round(rl_m, 1)), alert.freq_once_per_bar)
+        if rl_m - a < -th
+            alert("🔴 RL " + str.tostring(math.round(rl_m, 1)), alert.freq_once_per_bar)

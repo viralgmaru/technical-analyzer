@@ -1,0 +1,109 @@
+//@version=5
+indicator("Sector Rotation - Conservative", overlay=false)
+
+rsi_p = input(21, "RSI (slower)")
+ma_s = input(30, "MA Short")
+ma_l = input(200, "MA Long")
+th = input.float(1.5, "High Threshold")
+th_low = input.float(-1.5, "Low Threshold")
+
+it_en = input(true, "IT")
+bk_en = input(true, "Bank")
+ph_en = input(true, "Pharma")
+
+it_rg = input.int(0, "IT Reg")
+bk_rg = input.int(0, "Bank Reg")
+ph_rg = input.int(1, "Pharma Reg")
+
+f_score(t, r) =>
+    cls = request.security(t, "D", close)
+    vol = request.security(t, "D", volume)
+    rsi = request.security(t, "D", ta.rsi(cls, rsi_p))
+    sma_s = request.security(t, "D", ta.sma(cls, ma_s))
+    sma_l = request.security(t, "D", ta.sma(cls, ma_l))
+    sma200 = request.security(t, "D", ta.sma(cls, ma_l))
+    
+    gs = 0.0
+    if rsi > 70
+        gs += 5.0
+    else if rsi > 60
+        gs += 3.0
+    else if rsi > 50
+        gs += 1.0
+    if cls > sma_l
+        gs += 2.0
+    
+    vs = 5.0
+    rm = cls / sma200
+    if rm < 0.90
+        vs = 10.0
+    else if rm < 0.95
+        vs = 8.0
+    else if rm < 1.05
+        vs = 5.0
+    else if rm < 1.15
+        vs = 2.0
+    else
+        vs = 0.0
+    
+    vm = request.security(t, "D", ta.sma(vol, 30))
+    vr = vol / vm
+    obv = request.security(t, "D", ta.obv)
+    obvm = request.security(t, "D", ta.sma(obv, 30))
+    
+    fs = 0.0
+    if vr > 1.3
+        fs = 3.0
+    else if vr > 1.1
+        fs = 1.5
+    if obv > obvm
+        fs += 2.0
+    
+    rs = math.max(0.0, math.min(5.0 + r, 10.0))
+    (0.40 * math.min(gs, 10.0)) + (0.40 * vs) + (0.15 * fs) + (0.05 * rs)
+
+it = it_en ? f_score("NIFTY_IT", it_rg) : na
+bk = bk_en ? f_score("NIFTY_BANK", bk_rg) : na
+ph = ph_en ? f_score("NIFTY_PHARMA", ph_rg) : na
+
+var h_it = array.new<float>()
+var h_bk = array.new<float>()
+var h_ph = array.new<float>()
+
+if barstate.isnew
+    if it_en
+        array.push(h_it, it)
+        if array.size(h_it) > 20
+            array.shift(h_it)
+    if bk_en
+        array.push(h_bk, bk)
+        if array.size(h_bk) > 20
+            array.shift(h_bk)
+    if ph_en
+        array.push(h_ph, ph)
+        if array.size(h_ph) > 20
+            array.shift(h_ph)
+
+plot(it, "IT", color.blue, style=plot.style_columns)
+plot(bk, "Bank", color.orange, style=plot.style_columns)
+plot(ph, "Pharma", color.green, style=plot.style_columns)
+
+if barstate.isconfirmed
+    if it_en and array.size(h_it) > 0
+        a = array.avg(h_it)
+        if it > th and it > a
+            alert("🟢 IT " + str.tostring(math.round(it, 1)), alert.freq_once_per_bar)
+        if it < th_low and it < a
+            alert("🔴 IT " + str.tostring(math.round(it, 1)), alert.freq_once_per_bar)
+    if bk_en and array.size(h_bk) > 0
+        a = array.avg(h_bk)
+        if bk > th and bk > a
+            alert("🟢 BK " + str.tostring(math.round(bk, 1)), alert.freq_once_per_bar)
+        if bk < th_low and bk < a
+            alert("🔴 BK " + str.tostring(math.round(bk, 1)), alert.freq_once_per_bar)
+    if ph_en and array.size(h_ph) > 0
+        a = array.avg(h_ph)
+        if ph > th and ph > a
+            alert("🟢 PH " + str.tostring(math.round(ph, 1)), alert.freq_once_per_bar)
+        if ph < th_low and ph < a
+            alert("🔴 PH " + str.tostring(math.round(ph, 1)), alert.freq_once_per_bar)
