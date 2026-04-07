@@ -1,0 +1,253 @@
+---
+description: Token-efficient structured output standards for all agent work
+alwaysApply: true
+---
+
+# Repository Token-Efficiency Directives
+
+**Scope:** All custom agents, skills, and prompts in this repository must comply with these token-efficiency rules.
+
+## Core Rules
+
+### Rule 1: Compact Output by Default (Phase 1)
+
+- **Target:** 300-500 tokens per response
+- **Format:** Executive summary (1-3 sentences) -> recommendation -> structured data (tables/matrices/lists)
+- **No verbose prose:** Skip preamble, context restatement, lengthy explanations
+- **Code over commentary:** Use code snippets and artifacts instead of narrative
+
+**Example:**
+
+```
+WRONG: "In today's software engineering landscape, when dealing with microservices architectures..."
+RIGHT: "Use service mesh for distributed tracing. (Balances observability overhead with team maturity.)"
+```
+
+### Rule 2: Structured Data > Prose
+
+When presenting options, trade-offs, or scenarios:
+
+- **Use tables** for decision matrices (option | pros | cons | effort | cost | risk)
+- **Use checklists** for acceptance criteria (Functional, Non-functional, Testing)
+- **Use bullet lists** for breakdown of tasks or constraints
+- **Use code blocks** for templates, configs, or diagrams (Mermaid)
+- **Never use paragraphs** to describe multiple options - always table format
+
+**Example Table:**
+| Option | Pros | Cons | Effort | Risk |
+|--------|------|------|--------|------|
+| Conservative | Low risk | Limited capability | 2w | Low |
+| Balanced | Good fit | Moderate refactor | 4w | Medium |
+| Innovative | Full capability | Team ramp-up | 8w | High |
+
+### Rule 3: Extended Content - Request-Only (Phase 2)
+
+- **Default:** Always provide Phase 1 (compact).
+- **Extended content** (ADRs, runbooks, threat models, training materials): Generate _only_ when explicitly requested
+- **Ask before generating:** "Would you like [option A / option B / option C]?"
+- **Never auto-generate** 10+ page documentation without user consent
+- **Scope management:** If extended output is necessary, ask upfront for target scope (e.g., "2-page ADR?" vs. "full architectural audit?")
+
+**Example:**
+
+```
+Phase 1 (Default):
+✓ Executive summary
+✓ Recommendation with rationale
+✓ 3 options in decision matrix
+✓ Acceptance criteria (checklist)
+✓ Next steps
+
+Would you like: [Detailed ADR? / Threat model & security audit? / Cost projections? / Migration playbooks?]
+```
+
+### Rule 4: No Extra Commentary
+
+- Remove redundant explanations
+- Skip "Here's the answer:", "The result is:", "I will now..." preamble
+- Abbreviate frequently used terms: P99, SLO/SLI, MTTR, CRUD, -> instead of spelling out
+- One-line captions for diagrams (not multi-paragraph explanations)
+- Direct recommendations without justification paragraphs - rationale only in parentheses
+
+**Example:**
+
+```
+WRONG: "Based on industry best practices and considering your team's constraints,
+       I recommend using a microservices architecture because..."
+RIGHT: "Use microservices. (Scales independently; team has container expertise.)"
+```
+
+### Rule 5: Decision Matrices for All Scenarios
+
+When presenting options (conservative/balanced/innovative):
+
+- **Always use a single table** with effort, cost, timeline, team fit, complexity, risk columns
+- **No separate narratives** for each option
+- **Include acceptance criteria** below the matrix
+- **Trade-off visibility:** All realistic outcomes visible in one compact view
+
+### Rule 6: Abbreviations & Symbols
+
+Use consistently across all outputs to save tokens:
+
+| Term                 | Abbreviation       |
+| -------------------- | ------------------ |
+| Price/Cost           | $                  |
+| Effort/Duration      | 2w, 4w, 8w (weeks) |
+| Performance          | P99, P95, P50      |
+| Service Level        | SLO, SLI, SLAs     |
+| Mean Time To Recover | MTTR               |
+| Arrow/Direction      | ->                 |
+| Decrease/Lower       | ↓                  |
+| Increase/Raise       | ↑                  |
+
+### Rule 7: Acceptance Criteria Format
+
+Always use **checklist format** (not prose bullets):
+
+```markdown
+**Acceptance Criteria:**
+
+- [ ] Functional: API returns 200 with valid JWT
+- [ ] Functional: Rate limiting enforced at 1K req/min
+- [ ] Non-functional: P99 latency < 100ms
+- [ ] Non-functional: 99.9% uptime SLO
+- [ ] Testing: Unit tests cover 80%+ code
+- [ ] Testing: E2E tests validate auth flow
+```
+
+### Rule 8: Next Steps & Ownership
+
+Always include explicit next steps with owners:
+
+```markdown
+**Next Steps:**
+
+1. Owner: [role] - Task name (Acceptance criteria in parentheses)
+2. Owner: [role] - Task name (Acceptance criteria in parentheses)
+```
+
+---
+
+## Implementation for Sub-Agents
+
+### How to Apply These Rules
+
+**In agent frontmatter:**
+
+```yaml
+---
+description: "[Agent purpose]"
+model: Claude Haiku 4.5
+tools: [...]
+constraints:
+  - "Phase 1 default: 300-500 tokens, no verbose commentary"
+  - "Use tables/matrices instead of prose for options"
+  - "Ask before generating extended content (ADRs, runbooks)"
+  - "Abbreviate: P99, SLO, MTTR, -> (see repo rules)"
+  - "Acceptance criteria in checklist format"
+---
+```
+
+**In agent body (template):**
+
+```markdown
+## [Decision/Analysis]
+
+**Executive Summary:**
+[1-3 sentences max]
+
+**Recommendation:**
+[Option + rationale in parentheses]
+
+| Option | Pros | Cons | Effort | Cost | Risk |
+| ------ | ---- | ---- | ------ | ---- | ---- |
+| ...    | ...  | ...  | ...    | ...  | ...  |
+
+**Acceptance Criteria:**
+
+- [ ] Functional: ...
+- [ ] Non-functional: ...
+
+**Next Steps:**
+
+1. Owner: ... - Task (Criteria)
+
+---
+
+**Would you like:** [Option A? / Option B? / Option C?]
+```
+
+---
+
+## Validation Checklist
+
+Before committing any agent/skill/prompt:
+
+- [ ] Phase 1 response < 500 tokens (measure baseline)
+- [ ] No "Here's the answer" preamble or verbose intro
+- [ ] Decision matrices used (not paragraph descriptions)
+- [ ] All options visible in one table (no separate narratives)
+- [ ] Acceptance criteria in **checklist format**
+- [ ] Abbreviations consistent (P99, SLO, MTTR, ->)
+- [ ] Diagrams have 1-line captions or less
+- [ ] "Ask before" triggers present for Phase 2 content
+- [ ] Next steps explicit with owners
+- [ ] No redundant explanations or context restatement
+
+---
+
+## Examples
+
+### ✓ Good: Compact, Structured, Actionable
+
+```markdown
+## Caching Strategy
+
+**Executive Summary:**
+Redis cluster recommended. (Reduces P99 latency to <10ms; supports auto-scaling.)
+
+| Option    | Pros            | Cons                          | Effort | Cost    | Risk         |
+| --------- | --------------- | ----------------------------- | ------ | ------- | ------------ |
+| In-memory | Fast, simple    | Single-node limit             | 1w     | $0      | High (no HA) |
+| Redis     | HA, scalable    | Operational overhead          | 3w     | $500/mo | Medium       |
+| CDN cache | Global, managed | Cache invalidation complexity | 2w     | $200/mo | Low          |
+
+**Acceptance Criteria:**
+
+- [ ] Functional: Cache hit rate >80%
+- [ ] Non-functional: P99 <10ms
+- [ ] Non-functional: Failover <5s
+
+**Next Steps:**
+
+1. Owner: Infra team - Provision Redis cluster (Running in staging, tested with prod load)
+2. Owner: Backend team - Implement cache-aside pattern (Unit tests + E2E validation)
+
+---
+
+**Would you like:** Cost breakdown? / Scaling roadmap? / Failover playbook?
+```
+
+### ✗ Bad: Verbose, Prose, No Structure
+
+```markdown
+## Caching Strategy
+
+In today's cloud-native landscapes, caching is a critical component for performance optimization.
+There are several approaches you can take, and I'd like to walk you through each option carefully...
+
+**Option 1: In-memory caching** provides the fastest access times, but is limited to a single node.
+This means that if your server goes down, you lose all cached data. However, it's simple to implement...
+
+**Option 2: Redis** is a popular distributed caching solution that offers high availability.
+It's widely used in the industry because of its performance characteristics...
+
+// 2,000+ tokens of similar prose
+```
+
+---
+
+## Usage
+
+All agents in `.cursor/agents/`, all skills in `.cursor/skills/` (if present), and all prompts in `.cursor/prompts/` (if present) must comply with these rules.
